@@ -216,3 +216,17 @@ class Combined_Manager(Manager):
         result = [mg() for mg in manager_list]
 
         return result
+
+import sys
+if __name__ == '__main__':
+    ''' Using argv
+        Example python data_processing_manager.py [config]
+        [config] can just be the name or full path
+    '''
+    if len(sys.argv) > 1:
+        argv = sys.argv
+    else:
+        exit(0)
+    
+    CM = Combined_Manager(argv[1])
+    result = CM()
