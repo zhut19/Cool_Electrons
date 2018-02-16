@@ -2,15 +2,15 @@
 # Testing Blocks for Treemakers
 # by Tianyu tz2263@columbia.edu, Feb 2018
 #######################################
-
+# This class only test if the treemaker works or not
+# This should not be used to mass porduce minitrees
+########################################
 import os, sys, io, time
 import numpy as np
 from multihist import Histdd, Hist1d
 import matplotlib
 from matplotlib.colors import LogNorm
 import matplotlib.pyplot as plt
-%matplotlib inline
-%config InlineBackend.figure_format = 'retina'  # enable if you have a retina display
 import pandas as pd
 from scipy.optimize import curve_fit, minimize
 pd.options.mode.chained_assignment = None        # default='warn'
@@ -95,12 +95,23 @@ class Treemaker_Testing():
         return pd.read_pickle(event_list_file).event_number.values
 
 #### Main ####
-from hax.treemakers.common import Basics
-tt = Treemaker_Testing(Basics)
+if __name__ == '__main__':
+    ''' Using argv
+        Example python treemaker_testing.py [path] [module] [treename]
+    '''
+    if len(sys.argv) > 1:
+        argv = sys.argv
+    else:
+        exit(0)
+    
+    sys.path.append(argv[1])
+    mo = __import__(argv[2])
+    t = getattr(mo, argv[3])
+    
+    tt = Treemaker_Testing(t)
+    df = tt.start_testing(sciencerun = 'sciencerun1', 
+                          source_type = 'Rn220', 
+                          event_list_file = False, 
+                          nevent_test = 10)
 
-df = tt.start_testing(sciencerun = 'sciencerun1', 
-                      source_type = 'Rn220', 
-                      event_list_file = False, 
-                      nevent_test = 10)
-
-print(df.head(5))
+    print(df.head(5))
