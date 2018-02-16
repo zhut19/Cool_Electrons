@@ -184,7 +184,7 @@ export PATH=/project/lgrandi/anaconda3/bin:$PATH
 export PROCESSING_DIR={tmp}
 cd {cwd}
 source activate {conda_env}
-python {script} {outdir} {log}/{group_name}_id_list.txt
+python {script} {indir} {outdir} {log}/{group_name}_id_list.txt
 rm -rf ${{PROCESSING_DIR}}
 """
         y = cmd.format(job_name = 'submit{:02}'.format(self.id),
@@ -196,6 +196,7 @@ rm -rf ${{PROCESSING_DIR}}
                        partition = self.config['MIDWAYSUBMIT']['partition'],
                        qos = self.config['MIDWAYSUBMIT']['qos'],
                        conda_env = self.config['BASICS']['conda_env'],
+                       indir = os.path.join(self.head_directory, self.config['PROCESSING']['input'],
                        outdir = os.path.join(self.head_directory, self.config['BASICS']['name']),
                        script = self.config['MIDWAYSUBMIT']['script'],
                       )
