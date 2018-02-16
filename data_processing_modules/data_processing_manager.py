@@ -34,6 +34,7 @@ class Manager():
         print('Using following conditions for %s:\n' % self.name())
         for k, it in self.config.items(section):
               print (' - ',k,':', it)
+        print()
         return ''
 
     def name(self):
@@ -95,7 +96,7 @@ class Update_Runs_From_Database(Manager):
         self.datasets = self.datasets[self.datasets.start < np.datetime64(self.cbasics['set_selection_stop'])]
         
         print('\n%d runs found\n' %len(self.datasets))
-        self.datasets.to_pickle(os.path.join(os.getcwd(),'tmp','%s.pkl'%self.cbasics['name'].lower()))
+        self.datasets.to_pickle(os.path.join(os.getcwd(),'pickle','%s.pkl'%self.cbasics['name'].lower()))
         return self.datasets
 
 class Check_n_Batch(Manager):
@@ -113,7 +114,7 @@ class Check_n_Batch(Manager):
         if not os.path.exists(self.outdir): os.makedirs(self.outdir)
 
         self.num_group = int(self.config['PROCESSING']['number_group'])
-        self.datasets = pd.read_pickle(os.path.join(os.getcwd(),'tmp','%s.pkl'%self.cbasics['name'].lower()))
+        self.datasets = pd.read_pickle(os.path.join(os.getcwd(),'pickle','%s.pkl'%self.cbasics['name'].lower()))
         self.datasets.sort_values(by = 'number', axis = 'index', inplace = True)
         self.run_list_all = self.datasets.number.values
         self.exist_runs = [f[:-4] for f in os.listdir(self.outdir) if 'pkl' in f]
