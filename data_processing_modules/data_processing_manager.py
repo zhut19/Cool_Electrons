@@ -118,9 +118,16 @@ class Check_n_Batch(Manager):
         self.datasets.sort_values(by = 'number', axis = 'index', inplace = True)
         self.run_list_all = self.datasets.number.values
         self.exist_runs = [f[:-4] for f in os.listdir(self.outdir) if 'pkl' in f]
+        
+        if self.config['PROCESSING']['input'] != '':
+            self.indir = self.config['PROCESSING']['input']
+            self.needed_run = [f[:-4] for f in os.listdir(self.indir) if 'pkl' in f]
+        else:
+            self.needed_run = []
 
         self.run_list_process = list(set(self.run_list_all).difference(self.exist_runs))
         self.run_list_process = self.datasets[self.datasets.number.isin(self.run_list_process)].name.values
+        self.run_list_process = list(set(self.run_list_process).intersection(self.needed_run))
 
         print('\nTry update %s to %d runs; adding %d runs to %s\n' %(self.cbasics['name'], len(self.run_list_all), len(self.run_list_process), self.outdir))
 
@@ -196,11 +203,10 @@ rm -rf ${{PROCESSING_DIR}}
                        partition = self.config['MIDWAYSUBMIT']['partition'],
                        qos = self.config['MIDWAYSUBMIT']['qos'],
                        conda_env = self.config['BASICS']['conda_env'],
-                       indir = os.path.join(self.head_directory, self.config['PROCESSING']['input'],
+                       indir = self.config['PROCESSING']['input'],
                        outdir = os.path.join(self.head_directory, self.config['BASICS']['name']),
                        script = self.config['MIDWAYSUBMIT']['script'],
                       )
-
         submit_job(y)
         self.y = y
         self.id +=1
