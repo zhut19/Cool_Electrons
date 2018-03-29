@@ -155,12 +155,13 @@ class PreTriggerPeaks(TreeMaker):
                               event_start_time=event.start_time,
                               event_stop_time=event.stop_time)
         else:
-            s1_hit_time_mean = 1000e3 - 800e3
+            s1_hit_time_mean = 1000e3
 
         trigger_time = 1000e3
+        peak_pool = [p for p in event.peaks if p.detector == 'tpc' and p.right * 10 < trigger_time]
 
         # Loop over peaks
-        for ix, peak in enumerate(event.peaks):
+        for ix, peak in enumerate(peak_pool):
 
             if eval('&'.join(self.peak_cut_list).format(obj = 'peak')):
 
@@ -192,10 +193,16 @@ class PreTriggerPeaks(TreeMaker):
                             goodness_of_fit_nn=rp.goodness_of_fit))
 
                 # Additional interaction dependent information
-                if len(event.interactions):
-                    current_peak.update(dict(
-                        delay_main_s1=peak.hit_time_mean - s1.hit_time_mean,
-                        delay_main_s2=peak.hit_time_mean - s2.hit_time_mean))
+                #if len(event.interactions):
+                #    current_peak.update(dict(
+                #        delay_main_s1=peak.hit_time_mean - s1.hit_time_mean,
+                #        delay_main_s2=peak.hit_time_mean - s2.hit_time_mean))
+
+                # Something worth checking
+                current_peak.update(dict(sum_s1s_before = sum(
+                    [p.area for p in peak_pool if p.type == 's1' and p.left < peak.left])))
+                current_peak.update(dict(sum_s2s_before = sum(
+                    [p.area for p in peak_pool if p.type == 's2' and p.left < peak.left])))
 
                 peak_data_list.append(current_peak)
 
