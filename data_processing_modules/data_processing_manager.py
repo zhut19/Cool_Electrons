@@ -117,7 +117,9 @@ class Check_n_Batch(Manager):
         self.datasets = pd.read_pickle(os.path.join(os.getcwd(),'pickle','%s.pkl'%self.cbasics['name'].lower()))
         self.datasets.sort_values(by = 'number', axis = 'index', inplace = True)
         self.run_list_all = self.datasets.number.values
-        self.exist_runs = [f[:-4] for f in os.listdir(self.outdir) if 'pkl' in f]
+        
+        #self.exist_runs = [f[:-4] for f in os.listdir(self.outdir) if 'pkl' in f]
+        self.exist_runs = [] # The output existance check would be done in data_processing_process
         
         if self.config['PROCESSING']['input'] != '':
             self.indir = self.config['PROCESSING']['input']

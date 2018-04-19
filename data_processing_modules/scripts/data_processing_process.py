@@ -91,6 +91,7 @@ class RunAllProcess(ProductionProcess):
 
 from lax.lichens import sciencerun1
 DAQVeto = sciencerun1.DAQVeto()
+S2Ss = sciencerun1.S2SingleScatter()
 class PickleEventList(ProductionProcess):
     def process(self, in_directory, out_directory, production_id):
         self.in_directory = in_directory
@@ -102,12 +103,13 @@ class PickleEventList(ProductionProcess):
     def _process(self):
         self.hax_init(force_reload = False)
         df, _ = hax.minitrees.load_single_dataset(self.production_id[:11],
-            ['Fundamentals', 'Basics', 'LargestPeakProperties', 'Proximity', 'FlashIdentification'])
+            ['Fundamentals', 'Corrections', 'Basics', 'LargestPeakProperties', 'Proximity', 'FlashIdentification'])
 
         df = DAQVeto.process(df)
         slist = ['next_', 'nearest_', 'lone_hit', 'unknown', 'range_90p_area', 'index', '_on', '_off', 'flashing',
-            '_n_', 'pe_event', 'Cut', 'largest_']
-        klist = ['flashing_time', 'CutDAQVeto', 'nearest_busy']
+            '_n_', 'pe_event', 'Cut', 'largest_', 'correction', '_3d_', '_observed','cs1', 'cs2', '_x', '_y',
+            '_area', 'hit_time_std','_pax']
+        klist = ['flashing_time', 'CutDAQVeto', 'CurS2SingleScatter', 'nearest_busy']
         col_selection = lambda col: all(list(map(lambda s:s not in col, slist))) or any(list(map(lambda s:s in col, klist)))
         sel = list(map(col_selection, df.columns))
         df = df.loc[:, df.columns[sel]]
@@ -263,6 +265,7 @@ class FindPreviousLargeS2(ProductionProcess):
             if not flag[key]:
                 ans[key]['previous_s2_areas'] = [get_previous_s2_area(n) for n in ans[key].event_number.values]
                 ans[key]['previous_s2_times'] = [get_previous_s2_time(n) for n in ans[key].event_number.values]
+                ans[key]['previous_s2_areas_sum'] = [np.sum(areas) for areas in ans[key].previous_s2_areas.values]
                 ans[key]['previous_largest_s2_area'] = [np.amax(areas) for areas in ans[key].previous_s2_areas.values]
                 ans[key]['previous_largest_s2_index'] = [np.argmax(areas) for areas in ans[key].previous_s2_areas.values]
                 ans[key]['previous_largest_s2_time'] = [ans[key].previous_s2_times.values[ix][iy] for ix, iy in enumerate(ans[key].previous_largest_s2_index)]

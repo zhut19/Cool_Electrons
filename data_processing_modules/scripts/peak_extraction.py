@@ -193,10 +193,10 @@ class PreTriggerPeaks(TreeMaker):
                             goodness_of_fit_nn=rp.goodness_of_fit))
 
                 # Additional interaction dependent information
-                #if len(event.interactions):
-                #    current_peak.update(dict(
-                #        delay_main_s1=peak.hit_time_mean - s1.hit_time_mean,
-                #        delay_main_s2=peak.hit_time_mean - s2.hit_time_mean))
+                if len(event.interactions):
+                    current_peak.update(dict(
+                        delay_main_s1=peak.hit_time_mean - s1.hit_time_mean,
+                        delay_main_s2=peak.hit_time_mean - s2.hit_time_mean))
 
                 # Something worth checking
                 current_peak.update(dict(sum_s1s_before = sum(
