@@ -284,7 +284,7 @@ class FindPreviousLargeS2(ProductionProcess):
         remain_columns = dict(elist = [
             'run_number', 'event_number', 'event_time', 'event_duration', 'CutDAQVeto',
             'previous_busy', 'previous_event', 'previous_hev', 'previous_muon_veto_trigger',
-            'flashing_time', 'flashing_width', 'inside_flash', 'nearest_flash',
+            'flashing_time', 'flashing_width', 'inside_flash', 'nearest_flash', 'nearest_busy',
             's1', 's1_center_time', 's2', 's2_center_time', 'drift_time','x_pax', 'y_pax', 'z',
             'previous_largest_s2_area', 'previous_s2_areas', 'previous_s2_times', 'previous_largest_s2_time'],
                              )

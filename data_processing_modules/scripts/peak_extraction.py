@@ -126,7 +126,7 @@ class PreTriggerPeaks(TreeMaker):
         '({obj}.type != "unknown")',
         '({obj}.detector == "tpc")',
         '({obj}.right * 10 < trigger_time)',
-        '({obj}.hit_time_mean < s1_hit_time_mean)',
+        '({obj}.hit_time_mean < s1_center_time)',
         ]
 
     def __init__(self, *args, **kwargs):
@@ -146,8 +146,8 @@ class PreTriggerPeaks(TreeMaker):
             interaction = event.interactions[0]
             s1 = event.peaks[interaction.s1]
             s2 = event.peaks[interaction.s2]
-            s1_hit_time_mean = s1.hit_time_mean
-            s2_hit_time_mean = s2.hit_time_mean
+            s1_center_time = s1.center_time
+            s2_center_time = s2.center_time
 
             # Event data
             event_data = dict(s1_hit_time_mean_global=s1.hit_time_mean + event.start_time,
@@ -155,7 +155,7 @@ class PreTriggerPeaks(TreeMaker):
                               event_start_time=event.start_time,
                               event_stop_time=event.stop_time)
         else:
-            s1_hit_time_mean = 1000e3
+            s1_center_time = 1000e3
 
         trigger_time = 1000e3
         peak_pool = [p for p in event.peaks if p.detector == 'tpc' and p.right * 10 < trigger_time]
@@ -195,8 +195,12 @@ class PreTriggerPeaks(TreeMaker):
                 # Additional interaction dependent information
                 if len(event.interactions):
                     current_peak.update(dict(
-                        delay_main_s1=peak.hit_time_mean - s1.hit_time_mean,
-                        delay_main_s2=peak.hit_time_mean - s2.hit_time_mean))
+                        delay_main_s1=peak.center_time - s1.center_time,
+                        delay_main_s2=peak.center_time - s2.center_time))
+                else:
+                    current_peak.update(dict(
+                        delay_main_s1=peak.center_time - 1000e3,
+                        delay_main_s2=peak.center_time - 1000e3))
 
                 # Something worth checking
                 current_peak.update(dict(sum_s1s_before = sum(
