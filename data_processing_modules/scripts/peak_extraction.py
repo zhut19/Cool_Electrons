@@ -169,7 +169,6 @@ class PreTriggerPeaks(TreeMaker):
                 current_peak = dict(
                     type=peak.type,
                     area=peak.area,
-                    left=peak.left,
                     area_fraction_top=peak.area_fraction_top,
                     hit_time_mean=peak.hit_time_mean,
                     hit_time_mean_global=peak.hit_time_mean + event.start_time,
@@ -191,16 +190,6 @@ class PreTriggerPeaks(TreeMaker):
                             x_nn=rp.x,
                             y_nn=rp.y,
                             goodness_of_fit_nn=rp.goodness_of_fit))
-
-                # Additional interaction dependent information
-                if len(event.interactions):
-                    current_peak.update(dict(
-                        delay_main_s1=peak.center_time - s1.center_time,
-                        delay_main_s2=peak.center_time - s2.center_time))
-                else:
-                    current_peak.update(dict(
-                        delay_main_s1=peak.center_time - 1000e3,
-                        delay_main_s2=peak.center_time - 1000e3))
 
                 # Something worth checking
                 current_peak.update(dict(sum_s1s_before = sum(
@@ -271,6 +260,7 @@ class PreTriggerPeaks(TreeMaker):
 
 class LargeS2(TreeMaker):
     ''' This tree maker extract S2 peaks large enough to be triggered regardless there is valid S1
+        Now we only take out the largest three peaks
     '''
     __version__ = '0.1.3'
     extra_branches = ['peaks.*']
@@ -290,31 +280,35 @@ class LargeS2(TreeMaker):
 
         if event.event_number == self.stop_after:
             raise hax.paxroot.StopEventLoop()
-
-        peak_data_list = []
-
+        
+        area_list = [peak.area for peak in event.peaks if eval('&'.join(self.peak_cut_list).format(obj = 'peak'))]
+        sort_result = np.argsort(area_list)[-3:][::-1] # Get the index of the largest three peaks
+        sort_area = np.array(area_list)[sort_result]
+        peak_data_list = [i for i in range(len(sort_area))]
+        
         # Loop over peaks
         for ix, peak in enumerate(event.peaks):
 
-            if eval('&'.join(self.peak_cut_list).format(obj = 'peak')):
+            for iy, area in enumerate(sort_area):
 
-                # Basics
-                current_peak = dict(
-                    area = peak.area,
-                    area_fraction_top = peak.area_fraction_top,
-                    range_50p_area=list(peak.range_area_decile)[5],
-                    hit_time_mean=peak.hit_time_mean,
-                    hit_time_mean_global=peak.hit_time_mean + event.start_time,)
+                if peak.area == area:
 
-                # Position reconstruction information
-                for rp in peak.reconstructed_positions:
-                    if rp.algorithm == 'PosRecNeuralNet':
-                        current_peak.update(dict(
-                            x_nn=rp.x,
-                            y_nn=rp.y,
-                            goodness_of_fit_nn=rp.goodness_of_fit))
+                    # Basics
+                    current_peak = dict(
+                        area = peak.area,
+                        area_fraction_top = peak.area_fraction_top,
+                        range_50p_area=list(peak.range_area_decile)[5],
+                        hit_time_mean=peak.hit_time_mean,
+                        hit_time_mean_global=peak.hit_time_mean + event.start_time,)
 
-                peak_data_list.append(current_peak)
+                    # Position reconstruction information
+                    for rp in peak.reconstructed_positions:
+                        if rp.algorithm == 'PosRecNeuralNet':
+                            current_peak.update(dict(
+                                x_nn=rp.x,
+                                y_nn=rp.y))
+
+                    peak_data_list[iy] = current_peak
 
         return peak_data_list
 

@@ -80,9 +80,12 @@ class RunAllProcess(ProductionProcess):
 
     def __init__(self):
         self.process_list = [PickleEventList(),
+                             Plant_Saplings(),
                              BuildMiniTree_LargeS2(),
                              BuildMiniTree_PreTriggerPeaks(),
+                             #BuildMiniTree_S2TraillingPeaks(),
                              FindPreviousLargeS2(),
+                             FindPreviousPositions(),
                             ]
 
     def process(self, in_directory, out_directory, production_id):
@@ -107,7 +110,7 @@ class PickleEventList(ProductionProcess):
 
         df = DAQVeto.process(df)
         slist = ['next_', 'nearest_', 'lone_hit', 'unknown', 'range_90p_area', 'index', '_on', '_off', 'flashing',
-            '_n_', 'pe_event', 'Cut', 'largest_', 'correction', '_3d_', '_observed','cs1', 'cs2', '_x', '_y',
+            '_n_', 'pe_event', 'Cut', 'largest_', 'correction', '_3d_', '_observed', '_x', '_y',
             '_area', 'hit_time_std','_pax']
         klist = ['flashing_time', 'CutDAQVeto', 'CurS2SingleScatter', 'nearest_busy']
         col_selection = lambda col: all(list(map(lambda s:s not in col, slist))) or any(list(map(lambda s:s in col, klist)))
@@ -116,10 +119,9 @@ class PickleEventList(ProductionProcess):
         df.to_pickle(os.path.join(self.out_directory, '{name}.pkl'.format(name = self.production_id)))
 
     def check(self):
-        return False # Since is cost so little time (2sec) to update, let's do it all the time.
+        #return False # Since is cost so little time (2sec) to update, let's do it all the time.
         return os.path.isfile \
         ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
-
 
 # Import treemakers
 sys.path.append('/home/zhut/Cool_Electrons/data_processing_modules/scripts/')
@@ -127,10 +129,39 @@ import puni, peak_extraction
 from puni import Saplings, get_largest_indices
 from peak_extraction import S2TrailingPeaks, PreTriggerPeaks, LargeS2
 
+class Plant_Saplings(ProductionProcess):
+    __version__ = '0.0.0'
+    
+    def process(self, in_directory, out_directory, production_id):
+        self.in_directory = in_directory
+        self.out_directory = os.path.join(out_directory,'../Saplings')
+        self.production_id = production_id
+        flag = self.check()
+        if not flag:self._process()
+    
+    def _process(self):
+        self.hax_init(force_reload = False)
+        self.event_list = pd.read_pickle(os.path.join(self.in_directory, '{name}.pkl'.format(name = self.production_id)))
+        self.event_list = self.event_list.loc[:,'event_number'].values
+        
+        with self._divert_stdout():
+            self.df, cut_history = hax.minitrees.load_single_dataset(run_id = self.production_id,
+                                                                     treemakers = [Saplings],
+                                                                     preselection=None,
+                                                                     force_reload=False,
+                                                                     event_list = self.event_list
+                                                                    )
+            self.df.to_pickle(os.path.join(self.out_directory, '{name}.pkl'.format(name = self.production_id)))
+            print ('{production_id} minitrees building success :)'.format(production_id = self.production_id))
+
+    def check(self):
+        return os.path.isfile \
+        ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
+
 class BuildMiniTree_LargeS2(ProductionProcess):
     '''Run hax to create minitree'''
 
-    __version__ = '0.0.2'
+    __version__ = '0.1.0' # Bug removal of elist input
 
     def process(self, in_directory, out_directory, production_id):
         self.in_directory = in_directory
@@ -149,7 +180,7 @@ class BuildMiniTree_LargeS2(ProductionProcess):
                                                                      treemakers = [LargeS2],
                                                                      preselection=None,
                                                                      force_reload=False,
-                                                                     event_list = self.event_list
+                                                                     #event_list = self.event_list
                                                                     )
             self.df.to_pickle(os.path.join(self.out_directory, '{name}.pkl'.format(name = self.production_id)))
             print ('{production_id} minitrees building success :)'.format(production_id = self.production_id))
@@ -185,6 +216,31 @@ class BuildMiniTree_PreTriggerPeaks(ProductionProcess):
         return os.path.isfile \
         ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
 
+class BuildMiniTree_S2TraillingPeaks(ProductionProcess):
+    '''Run hax to create minitree'''
+
+    __version__ = '0.0.1'
+
+    def _process(self):
+        self.hax_init(force_reload = False)
+        self.event_list = pd.read_pickle(os.path.join(self.in_directory, '{name}.pkl'.format(name = self.production_id)))
+        ####
+        self.event_list = self.event_list[self.event_list.eval('CutDAQVeto')]
+        self.event_list = self.event_list.loc[:,'event_number'].values
+
+        with self._divert_stdout():
+            self.df, cut_history = hax.minitrees.load_single_dataset(run_id = self.production_id,
+                                                                     treemakers = [S2TrailingPeaks],
+                                                                     preselection=None,
+                                                                     force_reload=False,
+                                                                     event_list = self.event_list
+                                                                    )
+            self.df.to_pickle(os.path.join(self.out_directory, '{name}.pkl'.format(name = self.production_id)))
+            print ('{production_id} minitrees building success :)'.format(production_id = self.production_id))
+
+    def check(self):
+        return os.path.isfile \
+        ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
 
 from os.path import isfile, join
 from pax.utils import Memoize
@@ -306,6 +362,95 @@ class FindPreviousLargeS2(ProductionProcess):
         return os.path.isfile \
         ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
 
+
+class FindPreviousPositions(ProductionProcess):
+    '''Use LargeS2 to find previous large s2 for each peak in PreTriggerPeaks minitree'''
+
+    __version__ = '0.0.1'
+
+    def process(self, in_directory, out_directory, production_id):
+        self.indir = dict(
+            larges2 = os.path.join(out_directory,'../LargeS2'),
+            peak = os.path.join(out_directory,'../PreTriggerPeaks'),)
+        
+        self.outdir = dict(
+            position = os.path.join(out_directory,'../Peaks_Position'),)
+
+        self.production_id = production_id
+        self._process()
+
+    def _process(self):
+        self._process_list = [
+            self._check_existance,
+            self._read_pickle,
+            self._calculations,
+            self._write,]
+
+        rolling_kwarg = dict(file = '{name}.pkl'.format(name = self.production_id))
+
+        # Loop over stages of sub-processing
+        for _proc in self._process_list:
+            rolling_kwarg = (_proc(**rolling_kwarg))
+            print(_proc.__name__, rolling_kwarg['flag'])
+            if all(rolling_kwarg['flag'].values()):
+                break
+
+    def _check_existance(self, file):
+        ans, flag = dict(), dict()
+
+        for key in self.outdir.keys():
+            if isfile(join(self.outdir[key], file)):
+                flag.update({key:True})
+                ans.update({key:pd.read_pickle(join(self.outdir[key], file))})
+            else:
+                flag.update({key:False})
+
+        return dict(file = file, ans = ans, flag = flag)
+
+    def _read_pickle(self, file, ans, flag):
+        for key in ['peak', 'larges2']:
+            if not flag['position']:
+                ans.update({key:pd.read_pickle(join(self.indir[key], file))})
+        return dict(file = file, ans = ans, flag = flag)
+
+    def _calculations(self, file, ans, flag):
+        n_peak_previous = 4
+ 
+        ans['larges2'].drop(['area_fraction_top', 'hit_time_mean', 'range_50p_area', 'run_number', 'global_event_number'], axis=1, inplace=True)
+        ans['larges2'].drop_duplicates(['event_number'], keep='first', inplace=True)
+            
+        ans['peak'].drop(['delay_main_s1', 'delay_main_s2', 'goodness_of_fit_nn', 'hit_time_mean', 'left',
+            'range_50p_area', 'range_80p_area', 'range_90p_area', 'rise_time',
+            'run_number', 'sum_s1s_before', 'sum_s2s_before',  'x_tpf', 'y_tpf'], axis=1, inplace=True)
+            
+        previous_indicies = np.array([np.digitize(ans['peak'].event_number, ans['larges2'].event_number[1:]) - i - 1 for i in range(n_peak_previous)])
+        previous_indicies[previous_indicies<0] = 0
+        
+        temp = [pd.DataFrame({'previous_{:}_{field}'.format(i,field=field):
+                    ans['larges2'][field].values[previous_indicies[i]] for i in range(n_peak_previous)})
+                for field in ['x_nn', 'y_nn', 'area', 'hit_time_mean_global']]
+            
+        ans['peak'] = pd.concat([ans['peak']]+temp, axis=1)
+        names = dict(x_nn='delta_x', y_nn='delta_y', hit_time_mean_global='delay')
+        drop_fields = []
+        for field in ['x_nn', 'y_nn', 'hit_time_mean_global']:
+            for i in range(n_peak_previous):
+                ans['peak']['previous_{:}_{name}'.format(i,name=names[field])]=ans['peak'][field]-ans['peak']['previous_{:}_{field}'.format(i,field=field)]
+                drop_fields.append('previous_{:}_{field}'.format(i,field=field))
+        ans['peak'].drop(drop_fields, axis=1, inplace=True)
+
+        return dict(file = file, ans = ans, flag = flag)
+
+    def _write(self, file, ans, flag):
+        for key in ['peak']:
+            ans[key].to_pickle(join(self.outdir['position'], file))
+            flag[key] = True
+
+        return dict(file = file, ans = ans, flag = flag)
+
+    def check(self):
+        return os.path.isfile \
+        ('{outdir}/{production_id}.pkl'.format(outdir = self.out_directory, production_id = self.production_id))
 # When called upon, run RunAllProcess.process
 if __name__ == '__main__':
     arg = sys.argv
